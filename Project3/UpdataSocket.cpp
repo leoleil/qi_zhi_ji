@@ -1,98 +1,23 @@
-#include "Socket.h"
-#include "AllocationMessage.h"
+#include "UpdataSocket.h"
 #include <iostream> 
 #include <sstream>
 #include <string>
 using namespace std;
-
-Socket::Socket()
+extern CRITICAL_SECTION data_CS;//全局关键代码段对象
+extern vector<message_buf> DATA_MESSAGES;//全局上传数据报文池
+UpdataSocket::UpdataSocket()
 {
 }
 
 
-Socket::~Socket()
+UpdataSocket::~UpdataSocket()
 {
-	WSACleanup(); //释放套接字资源  
 }
 
-bool Socket::createSendServer(const char* ip,const int hton,const double velocity) {
-	//初始化套结字动态库
-	if (WSAStartup(MAKEWORD(2, 2), &S_wsd) != 0)
-	{
-		cout << "WSAStartup failed!" << endl;
-		return false;
-	}
-	//创建套接字  
-	sHost = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (INVALID_SOCKET == sHost)
-	{
-		cout << "socket failed!" << endl;
-		//WSACleanup();//释放套接字资源  
-		return  false;
-	}
-
-	//设置服务器地址和服务端口号  
-	servAddr.sin_family = AF_INET;
-	servAddr.sin_addr.s_addr = inet_addr(ip);
-	servAddr.sin_port = htons(hton);
-	int nServAddlen = sizeof(servAddr);
-
-	//连接服务器  
-	retVal = connect(sHost, (LPSOCKADDR)&servAddr, sizeof(servAddr));
-	if (SOCKET_ERROR == retVal)
-	{
-		cout << "connect failed!" << endl;
-		closesocket(sHost); //关闭套接字  
-							//WSACleanup(); //释放套接字资源  
-		return false;
-	}
-	return true;
-}
-int Socket::sendMessage(char* message, int lenght) {
-	while (1)
-	{
-		retVal = send(sHost, message, lenght, 0);
-		if (retVal == SOCKET_ERROR)
-		{
-			int r = WSAGetLastError();
-			if (r == WSAEWOULDBLOCK)
-			{
-				continue;
-			}
-			else
-			{
-				cout << "send failed!" << endl;
-				return -1;
-			}
-		}
-		else
-		{
-			break;
-		}
-
-	}
-
-	return 0;
-}
-
-int Socket::offSendServer() {
-	//退出  
-	closesocket(sHost); //关闭套接字  
-	return 0;
-}
-
-int Socket::offRecServer()
+int UpdataSocket::createReceiveServer(const int port, std::vector<message_buf>& message)
 {
-	//退出  
-	closesocket(sServer);   //关闭套接字  
-	closesocket(sClient);   //关闭套接字  
-	return 0;
-}
-
-int Socket::createReceiveServer(const int port, vector<message_buf>& message)
-{
-
-	cout << "| 任务接收         | 服务启动" << endl;
+	
+	cout << "| 数据上行         | 服务启动" << endl;
 	//初始化套结字动态库  
 	if (WSAStartup(MAKEWORD(2, 2), &S_wsd) != 0)
 	{
@@ -122,11 +47,11 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 		WSACleanup();           //释放套接字资源;  
 		return -1;
 	}
-
+	
 	//开始监听   
-	cout << "| 任务接收         | 监听中" << endl;
+	cout << "| 数据上行         | listening" << endl;
 	retVal = listen(sServer, 1);
-
+	
 	if (SOCKET_ERROR == retVal)
 	{
 		cout << "listen failed!" << endl;
@@ -146,8 +71,8 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 		WSACleanup();           //释放套接字资源;  
 		return -1;
 	}
-
-	cout << "| 任务接收         | TCP连接创建" << endl;
+	
+	cout << "| 数据上行         | TCP连接创建" << endl;
 	while (true) {
 		//数据窗口
 		const int data_len = 66560;//每次接收65K数据包
@@ -159,19 +84,19 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 			//接收客户端数据
 			//清空buffer
 			ZeroMemory(buf, BUF_SIZE);
-
+			
 			//获取数据
 			retVal = recv(sClient, buf, BUF_SIZE, 0);
 
 			if (SOCKET_ERROR == retVal)
 			{
-				cout << "| 任务接收         | 接收程序出错" << endl;
+				cout << "| 数据上行         | 接收程序出错" << endl;
 				closesocket(sServer);   //关闭套接字    
 				closesocket(sClient);   //关闭套接字
 				return -1;
 			}
 			if (retVal == 0) {
-				cout << "| 任务接收         | 接收完毕断开本次连接" << endl;
+				cout << "| 数据上行         | 接收完毕断开本次连接" << endl;
 				closesocket(sServer);   //关闭套接字    
 				closesocket(sClient);   //关闭套接字
 				return -1;
@@ -183,27 +108,27 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 			if ((data_ptr - data) >= data_len) {
 				break;//如果接收到的数据大于最大窗口跳出循环（数据包最大64K）
 			}
-
+			
 		}
 
 
-		//将获取到的任务放入数据库
+		//将获取到的数据放入数据池中
 		char* ptr = data;
 		UINT32 length = 0;
 		for (int i = 0; i < data_len; i = i + length) {
 
-			if (data[i] == -51 && data[i + 1] == -51)break;
+			if (data[i] == NULL && data[i + 1] == NULL)break;
 			//获取报文长度
 			memcpy(&length, ptr + i + 2, 4);
-			int size = 70 * 1024;
-			char val[70 * 1024];
+
 			//获取一个buffer
+			message_buf messageBuf;
 			//内存复制
-			memcpy(val, ptr + i, length);
-			AllocationMessage message;
-			message.messageParse(val);
+			memcpy(&messageBuf.val, ptr + i, length);
 			//加入报文池
-			string sql = "";
+			EnterCriticalSection(&data_CS);//进入关键代码段
+			message.push_back(messageBuf);
+			LeaveCriticalSection(&data_CS);//离开关键代码段
 
 		}
 
@@ -213,5 +138,3 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 	closesocket(sClient);   //关闭套接字  
 	return 0;
 }
-
-

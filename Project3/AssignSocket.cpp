@@ -1,98 +1,25 @@
-#include "Socket.h"
+#include "AssignSocket.h"
 #include "AllocationMessage.h"
+#include "MySQLInterface.h"
+#include "StringNumUtils.h"
 #include <iostream> 
 #include <sstream>
 #include <string>
 using namespace std;
+extern CRITICAL_SECTION g_CS;//全局关键代码段对象
 
-Socket::Socket()
+AssignSocket::AssignSocket()
 {
 }
 
 
-Socket::~Socket()
+AssignSocket::~AssignSocket()
 {
-	WSACleanup(); //释放套接字资源  
 }
-
-bool Socket::createSendServer(const char* ip,const int hton,const double velocity) {
-	//初始化套结字动态库
-	if (WSAStartup(MAKEWORD(2, 2), &S_wsd) != 0)
-	{
-		cout << "WSAStartup failed!" << endl;
-		return false;
-	}
-	//创建套接字  
-	sHost = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (INVALID_SOCKET == sHost)
-	{
-		cout << "socket failed!" << endl;
-		//WSACleanup();//释放套接字资源  
-		return  false;
-	}
-
-	//设置服务器地址和服务端口号  
-	servAddr.sin_family = AF_INET;
-	servAddr.sin_addr.s_addr = inet_addr(ip);
-	servAddr.sin_port = htons(hton);
-	int nServAddlen = sizeof(servAddr);
-
-	//连接服务器  
-	retVal = connect(sHost, (LPSOCKADDR)&servAddr, sizeof(servAddr));
-	if (SOCKET_ERROR == retVal)
-	{
-		cout << "connect failed!" << endl;
-		closesocket(sHost); //关闭套接字  
-							//WSACleanup(); //释放套接字资源  
-		return false;
-	}
-	return true;
-}
-int Socket::sendMessage(char* message, int lenght) {
-	while (1)
-	{
-		retVal = send(sHost, message, lenght, 0);
-		if (retVal == SOCKET_ERROR)
-		{
-			int r = WSAGetLastError();
-			if (r == WSAEWOULDBLOCK)
-			{
-				continue;
-			}
-			else
-			{
-				cout << "send failed!" << endl;
-				return -1;
-			}
-		}
-		else
-		{
-			break;
-		}
-
-	}
-
-	return 0;
-}
-
-int Socket::offSendServer() {
-	//退出  
-	closesocket(sHost); //关闭套接字  
-	return 0;
-}
-
-int Socket::offRecServer()
-{
-	//退出  
-	closesocket(sServer);   //关闭套接字  
-	closesocket(sClient);   //关闭套接字  
-	return 0;
-}
-
-int Socket::createReceiveServer(const int port, vector<message_buf>& message)
+int AssignSocket::createReceiveServer(const int port, std::vector<message_buf>& message)
 {
 
-	cout << "| 任务接收         | 服务启动" << endl;
+	cout << "| 接收任务         | 服务启动" << endl;
 	//初始化套结字动态库  
 	if (WSAStartup(MAKEWORD(2, 2), &S_wsd) != 0)
 	{
@@ -124,7 +51,7 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 	}
 
 	//开始监听   
-	cout << "| 任务接收         | 监听中" << endl;
+	cout << "| 接收任务         | listening" << endl;
 	retVal = listen(sServer, 1);
 
 	if (SOCKET_ERROR == retVal)
@@ -147,7 +74,7 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 		return -1;
 	}
 
-	cout << "| 任务接收         | TCP连接创建" << endl;
+	cout << "| 接收任务         | TCP连接创建" << endl;
 	while (true) {
 		//数据窗口
 		const int data_len = 66560;//每次接收65K数据包
@@ -165,13 +92,13 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 
 			if (SOCKET_ERROR == retVal)
 			{
-				cout << "| 任务接收         | 接收程序出错" << endl;
+				cout << "| 接收任务         | 接收程序出错" << endl;
 				closesocket(sServer);   //关闭套接字    
 				closesocket(sClient);   //关闭套接字
 				return -1;
 			}
 			if (retVal == 0) {
-				cout << "| 任务接收         | 接收完毕断开本次连接" << endl;
+				cout << "| 接收任务         | 接收完毕断开本次连接" << endl;
 				closesocket(sServer);   //关闭套接字    
 				closesocket(sClient);   //关闭套接字
 				return -1;
@@ -181,13 +108,20 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 
 			data_ptr = data_ptr + retVal;
 			if ((data_ptr - data) >= data_len) {
-				break;//如果接收到的数据大于最大窗口跳出循环（数据包最大64K）
+				break;//如果接收到的数据大于最大窗口跳出循环（数据包最大65K）
 			}
 
 		}
 
 
-		//将获取到的任务放入数据库
+		const char SERVER[10] = "127.0.0.1";//连接的数据库ip
+		const char USERNAME[10] = "root";
+		const char PASSWORD[10] = "";
+		const char DATABASE[20] = "satellite";
+		const int PORT = 3306;
+
+
+		//将获取到的数据放入数据池中
 		char* ptr = data;
 		UINT32 length = 0;
 		for (int i = 0; i < data_len; i = i + length) {
@@ -195,15 +129,33 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 			if (data[i] == -51 && data[i + 1] == -51)break;
 			//获取报文长度
 			memcpy(&length, ptr + i + 2, 4);
-			int size = 70 * 1024;
-			char val[70 * 1024];
+
 			//获取一个buffer
+			message_buf messageBuf;
 			//内存复制
-			memcpy(val, ptr + i, length);
-			AllocationMessage message;
-			message.messageParse(val);
-			//加入报文池
-			string sql = "";
+			memcpy(&messageBuf.val, ptr + i, length);
+			AllocationMessage allocationMessage;
+			allocationMessage.messageParse(messageBuf.val);
+			MySQLInterface mysql;
+			if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
+				//转换工具
+				StringNumUtils utils;
+				string ackSql = "INSERT INTO 任务表 (任务编号, 卫星编号, 任务类型, 执行标志, 任务开始时间, 任务结束时间) VALUES(";
+				ackSql += utils.numToString<UINT32>(allocationMessage.getterTaskNum()) + ",";
+				char satelliteId[50];
+				int size;
+				allocationMessage.getterSatelliteId(satelliteId, size);
+				ackSql += satelliteId;
+				ackSql += ",";
+				ackSql += utils.numToString<UINT16>(allocationMessage.getterTaskType()) + ",";
+				ackSql += "FROM_UNIXTIME(" + utils.numToString<long long>(allocationMessage.getterTaskStartTime()) + "),";
+				ackSql += "FROM_UNIXTIME(" + utils.numToString<long long>(allocationMessage.getterTaskEndTime()) + "));";
+				mysql.writeDataToDB(ackSql);
+			}
+			else {
+				cout << "| 接收任务         | 连接数据库失败" << endl;
+				cout << "| 接收任务错误信息 | " << mysql.errorNum << endl;
+			}
 
 		}
 
@@ -211,7 +163,6 @@ int Socket::createReceiveServer(const int port, vector<message_buf>& message)
 	//退出  
 	closesocket(sServer);   //关闭套接字  
 	closesocket(sClient);   //关闭套接字  
+							//WSACleanup();           //释放套接字资源;  
 	return 0;
 }
-
-
