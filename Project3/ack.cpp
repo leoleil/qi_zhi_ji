@@ -5,7 +5,7 @@ DWORD ack(LPVOID lpParameter)
 	//数据库连接关键字
 	const char SERVER[10] = "127.0.0.1";
 	const char USERNAME[10] = "root";
-	const char PASSWORD[10] = "";
+	const char PASSWORD[10] = "123456";
 	const char DATABASE[20] = "di_mian_zhan";
 	const int PORT = 3306;
 	while (1) {

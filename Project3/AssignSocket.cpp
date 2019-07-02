@@ -116,7 +116,7 @@ int AssignSocket::createReceiveServer(const int port, std::vector<message_buf>& 
 
 		const char SERVER[10] = "127.0.0.1";//连接的数据库ip
 		const char USERNAME[10] = "root";
-		const char PASSWORD[10] = "";
+		const char PASSWORD[10] = "123456";
 		const char DATABASE[20] = "satellite";
 		const int PORT = 3306;
 

@@ -28,15 +28,15 @@ int main(int argc, char* argv[])
 	HANDLE hThread2;//接收数据上行的线程
 	hThread2 = CreateThread(NULL, 0, assignment_data_upload_rec, NULL, 0, NULL);
 	CloseHandle(hThread2);
-	HANDLE hThread3;//发送数据ack的线程
-	hThread3 = CreateThread(NULL, 0, ack, NULL, 0, NULL);
-	CloseHandle(hThread3);
-	HANDLE hThread4;//发送数据下行的线程
-	hThread4 = CreateThread(NULL, 0, downdata, NULL, 0, NULL);
-	CloseHandle(hThread4);
-	HANDLE hThread5;//发送数据下行的线程
-	hThread5 = CreateThread(NULL, 0, tele, NULL, 0, NULL);
-	CloseHandle(hThread5);
+	//HANDLE hThread3;//发送数据ack的线程
+	//hThread3 = CreateThread(NULL, 0, ack, NULL, 0, NULL);
+	//CloseHandle(hThread3);
+	//HANDLE hThread4;//发送数据下行的线程
+	//hThread4 = CreateThread(NULL, 0, downdata, NULL, 0, NULL);
+	//CloseHandle(hThread4);
+	//HANDLE hThread5;//遥测的线程
+	//hThread5 = CreateThread(NULL, 0, tele, NULL, 0, NULL);
+	//CloseHandle(hThread5);
 	while (1) {
 	}
 

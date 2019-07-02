@@ -115,7 +115,7 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 		//将获取到的数据放入数据池中
 		const char SERVER[10] = "127.0.0.1";//连接的数据库ip
 		const char USERNAME[10] = "root";
-		const char PASSWORD[10] = "";
+		const char PASSWORD[10] = "123456";
 		const char DATABASE[20] = "di_mian_zhan";
 		const int PORT = 3306;
 		MySQLInterface mysql;
@@ -132,7 +132,7 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 				char val[65 * 1024];
 				//内存复制
 				memcpy(val, ptr + i, length);
-				//加入报文池
+				//解析报文写入数据库
 				AllocationMessage message;
 				message.messageParse(val);
 				int size;
@@ -141,14 +141,24 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 				string sql = "INSERT INTO `di_mian_zhan`.`任务分配表`(`任务编号`,`卫星编号`,`任务类型`,`计划开始时间`,`计划截止时间`,`分发标志`,`任务标志`)VALUES(";
 				sql = sql + to_string(message.getterTaskNum()) + ",'" + satrlliteId + "'," + to_string(message.getterTaskType()) + ",from_unixtime(" + to_string(message.getterTaskStartTime())+"),from_unixtime(" + to_string(message.getterTaskEndTime()) + "),2,0);";
 				mysql.writeDataToDB(sql);
+				if (message.getterTaskType() == 101) {
+					//如果是遥控报文，添加遥控信息
+					int message_date_len = 64 * 1024;
+					char message_date[64 * 1024];
+					message.getterMessage(message_date, message_date_len);
+					sql = "update `di_mian_zhan`.`任务分配表` set `遥控信息` = '";
+					sql = sql + message_date + "' where `任务编号` = " + to_string(message.getterTaskNum()) + ";";
+					mysql.writeDataToDB(sql);
+				}
+				
 				cout << "| 任务分配         | 成功" << endl;
+				mysql.closeMySQL();
 			}
 		}
 		else {
 			cout << "| 任务分配         | 连接数据库失败" << endl;
 			cout << "| 任务分配错误信息 | " << mysql.errorNum << endl;
 		}
-		
 
 	}
 	//退出  

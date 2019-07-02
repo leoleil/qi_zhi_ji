@@ -5,7 +5,7 @@ DWORD tele(LPVOID lpParameter)
 	//数据库连接关键字
 	const char SERVER[10] = "127.0.0.1";
 	const char USERNAME[10] = "root";
-	const char PASSWORD[10] = "";
+	const char PASSWORD[10] = "123456";
 	const char DATABASE[20] = "di_mian_zhan";
 	const int PORT = 3306;
 	while (1) {
@@ -126,8 +126,8 @@ DWORD tele(LPVOID lpParameter)
 				for (int i = 0; i < D_MES_LIST.size(); i++) {
 					//报文长度
 
-					UINT16 message_len = 117 + D_MES_LIST[i].f_list.size() * 67;//TODO
-					BYTE* message = new BYTE[message_len];
+					UINT32 message_len = 0;// = 117 + D_MES_LIST[i].f_list.size() * 67;//TODO
+					BYTE message[M];
 					BYTE* ptr = message;//message指针
 					UINT16 mesage_id = 1000;//报文标识
 					long long timestamp = Message::getSystemTime();//时间戳
@@ -139,8 +139,8 @@ DWORD tele(LPVOID lpParameter)
 					//包装message
 					memcpy(ptr, &mesage_id, sizeof(UINT16));//设备标识
 					ptr = ptr + sizeof(UINT16);
-					memcpy(ptr, &message_len, sizeof(UINT16));//字段长度
-					ptr = ptr + sizeof(UINT16);
+					memcpy(ptr, &message_len, sizeof(UINT32));//字段长度
+					ptr = ptr + sizeof(UINT32);
 					memcpy(ptr, &timestamp, sizeof(long long));//时间
 					ptr = ptr + sizeof(long long);
 					memcpy(ptr, &encryption, sizeof(bool));//加密
@@ -180,25 +180,24 @@ DWORD tele(LPVOID lpParameter)
 						ptr = ptr + sizeof(bool);
 					}
 					Sleep(10);
+					message_len = ptr - message;
+					memcpy(message + 2, &message_len, sizeof(UINT32));
 					const int bufSize = 66560;//发送包固定65k
 					int returnSize = 0;
-					char* sendBuf = new char[bufSize];//申请发送buf
+					char sendBuf[bufSize];//申请发送buf
 					ZeroMemory(sendBuf, bufSize);//清空发送空间
 					memcpy(sendBuf, message, message_len);
 					if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 
 																	   //发送失败释放资源跳出文件读写
 						cout << "| 卫星遥测         | 定义报文发送失败" << endl;
-						delete sendBuf;
-						
 						break;
 					}
-					
 
 
 				}
 				vector<vector<string>> str_data_Array;//输入数据文件集合
-				ifstream inFile("数据.csv", ios::in);
+				ifstream inFile("D:\\卫星星座运管系统\\遥测数据\\数据.csv", ios::in);
 				//解析数据文件
 				while (getline(inFile, lineStr)) {
 					stringstream ss(lineStr);
@@ -212,12 +211,12 @@ DWORD tele(LPVOID lpParameter)
 					BYTE* bufPtr = buf;//数据报文指针
 					BYTE* buf_len_Ptr = buf;
 					UINT16 id = 2000;//报文标识
-					UINT16 len = 0;//报文长度
+					UINT32 len = 0;//报文长度
 					memcpy(bufPtr, &id, sizeof(UINT16));//报文标识
 					bufPtr = bufPtr + sizeof(UINT16);
 					len = len + sizeof(UINT16);
-					memcpy(bufPtr, &len, sizeof(UINT16));//报文长度
-					bufPtr = bufPtr + sizeof(UINT16);
+					memcpy(bufPtr, &len, sizeof(UINT32));//报文长度
+					bufPtr = bufPtr + sizeof(UINT32);
 					len = len + sizeof(UINT16);
 					long long timestamp = utiles.stringToNum<long long>(lineArray[0]);//产生时间
 					memcpy(bufPtr, &timestamp, sizeof(long long));
@@ -358,7 +357,7 @@ DWORD tele(LPVOID lpParameter)
 					}
 					Sleep(10);//按照设置的速率发送
 					len = bufPtr - buf_len_Ptr;
-					memcpy(buf_len_Ptr + 2, &len, sizeof(UINT16));
+					memcpy(buf_len_Ptr + 2, &len, sizeof(UINT32));
 					const int bufSize = 66560;//发送包固定65k
 					int returnSize = 0;
 					char* sendBuf = new char[bufSize];//申请发送buf
@@ -372,10 +371,11 @@ DWORD tele(LPVOID lpParameter)
 
 						break;
 					}
+					cout << "#";
 					
 				}
 
-				
+				inFile.close();
 				//断开TCP
 				socketer.offSendServer();
 				delete groundStationId;
