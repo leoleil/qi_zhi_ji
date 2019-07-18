@@ -3,22 +3,22 @@
 DWORD downdata(LPVOID lpParameter)
 {
 	//数据库连接关键字
-	const char SERVER[10] = "127.0.0.1";
-	const char USERNAME[10] = "root";
-	const char PASSWORD[10] = "123456";
+	const char * SERVER = MYSQL_SERVER.data();
+	const char * USERNAME = MYSQL_USERNAME.data();
+	const char * PASSWORD = MYSQL_PASSWORD.data();
 	const char DATABASE[20] = "di_mian_zhan";
 	const int PORT = 3306;
 	while (1) {
 		//5秒监测数据库的任务分配表
 		Sleep(5000);
-		cout << "| 数据下行         | 监测数据库分配表..." << endl;
+		//cout << "| 数据下行         | 监测数据库分配表..." << endl;
 		MySQLInterface mysql;//申请数据库连接对象
 
-							 //连接数据库
+		//连接数据库
 		if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
 			//从数据中获取分配任务
 			//寻找分发标志为2，数据分发标志为0的任务
-			string selectSql = "select 任务编号,任务类型,unix_timestamp(计划开始时间),unix_timestamp(计划截止时间),卫星编号,服务器编号 from 任务分配表 where 分发标志 = 2 and 任务标志 = 0 and 任务类型 = 111";
+			string selectSql = "select 任务编号,任务类型,unix_timestamp(计划开始时间),unix_timestamp(计划截止时间),卫星编号,服务器编号 from 任务分配表 where 任务状态 = 0 and 任务类型 = 111";
 			vector<vector<string>> dataSet;
 			mysql.getDatafromDB(selectSql, dataSet);
 			if (dataSet.size() == 0) {
@@ -40,11 +40,16 @@ DWORD downdata(LPVOID lpParameter)
 				UINT32 taskNum = util.stringToNum<UINT32>(dataSet[i][0]);//任务编号
 				UINT16 taskType = util.stringToNum<UINT16>(dataSet[i][1]);//任务类型
 				long long taskStartTime = util.stringToNum<long long>(dataSet[i][2]);//计划开始时间
-				if (taskStartTime > dateTime) {
+				if (taskStartTime*1000 > dateTime) {
 					//如果还没到计划开始时间就跳过
 					continue;
 				}
-
+				string ackSql = "";
+				if (i == 0) {
+					//将该任务号的状态改为正在执行，并且记录任务开始时间
+					ackSql = "update 任务分配表 set 任务状态 = 2 ,任务开始时间 = now() where 任务编号 = " + dataSet[i][0];
+					mysql.writeDataToDB(ackSql);
+				}
 				long long taskEndTime = util.stringToNum<long long>(dataSet[i][3]);//计划截止时间
 				char* satelliteId = new char[20];//卫星编号
 				strcpy_s(satelliteId, dataSet[i][4].size() + 1, dataSet[i][4].c_str());
@@ -58,6 +63,8 @@ DWORD downdata(LPVOID lpParameter)
 				if (ipSet.size() == 0) {
 					delete groundStationId;
 					delete satelliteId;
+					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100 ,任务结束时间 = now() where 任务编号 = " + dataSet[i][0];
+					mysql.writeDataToDB(ackSql);
 					continue;//没有找到ip地址
 				}
 
@@ -65,7 +72,9 @@ DWORD downdata(LPVOID lpParameter)
 				Socket socketer;
 				const char* ip = ipSet[0][0].c_str();//获取到地址
 													 //建立TCP连接
-				if (!socketer.createSendServer(ip, 4999, 0)) {
+				if (!socketer.createSendServer(ip, 4997, 0)) {
+					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
 					delete groundStationId;
 					delete satelliteId;
@@ -77,6 +86,8 @@ DWORD downdata(LPVOID lpParameter)
 				string config = "D:\\卫星星座运管系统\\下行传输数据\\" + dataSet[i][0] + "\\config.txt";
 				ifstream is(config, ios::in);
 				if (!is.is_open()) {
+					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+					mysql.writeDataToDB(ackSql);
 					cout << "| 数据下行         | ";
 					cout << config << " 无法打开" << endl;
 					//创建不成功释放资源
@@ -95,11 +106,14 @@ DWORD downdata(LPVOID lpParameter)
 				if (!fileIs.is_open()) {
 					cout << "| 数据下行         | ";
 					cout << file << " 无法打开" << endl;
+					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
 					delete groundStationId;
 					delete satelliteId;
 					continue;
 				}
+				cout << "| 数据下行         | >";
 				//读取文件
 				while (!fileIs.eof()) {
 					int bufLen = 1024 * 64;//数据最大64K
@@ -122,9 +136,10 @@ DWORD downdata(LPVOID lpParameter)
 					ZeroMemory(sendBuf, bufSize);//清空发送空间
 					downMessage.createMessage(sendBuf, returnSize, bufSize);//创建传输字节包
 					if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
-
-																	   //发送失败释放资源跳出文件读写
+						//发送失败释放资源跳出文件读写
 						cout << "| 数据下行         | 发送失败，断开连接" << endl;
+						ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+						mysql.writeDataToDB(ackSql);
 						delete sendBuf;
 						delete up_expand_name;
 						delete up_file_name;
@@ -132,12 +147,14 @@ DWORD downdata(LPVOID lpParameter)
 						break;
 					}
 					//flieOs.write(fileDataBuf, bufLen);
+					cout << ">";
 					if (fileIs.eof() == true) {
-
+						cout << endl;
 						cout << "| 数据下行         | " << dataSet[i][0] << "号任务下行成功" << endl;
 
 						//修改数据库分发标志
-						string ackSql = "update 任务分配表 set 数据分发标志 = 2 where 任务编号 = " + dataSet[i][0];
+						ackSql = "update 任务分配表 set 任务状态 = 3 , ACK = 1000,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+						mysql.writeDataToDB(ackSql);
 
 					}
 
@@ -153,7 +170,7 @@ DWORD downdata(LPVOID lpParameter)
 				delete groundStationId;
 				delete satelliteId;
 			}
-
+			mysql.closeMySQL();
 
 		}
 		else {

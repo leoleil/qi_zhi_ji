@@ -18,6 +18,9 @@
 
 using namespace std;
 
+extern string MYSQL_SERVER;
+extern string MYSQL_USERNAME;
+extern string MYSQL_PASSWORD;
 //全局变量
 const int M = 1048576;				//1M									
 const int K = 1024;					//1K
@@ -47,4 +50,4 @@ typedef struct mydata {
 
 /*遥测模块*/
 DWORD WINAPI tele(LPVOID lpParameter);
-
+DWORD WINAPI tele2(LPVOID lpParameter);

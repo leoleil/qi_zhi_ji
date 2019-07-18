@@ -90,6 +90,7 @@ int UpdataSocket::createReceiveServer(const int port, std::vector<message_buf>& 
 
 			if (SOCKET_ERROR == retVal)
 			{
+				cout << endl;
 				cout << "| 数据上行         | 接收程序出错" << endl;
 				closesocket(sServer);   //关闭套接字    
 				closesocket(sClient);   //关闭套接字

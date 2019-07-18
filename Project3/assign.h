@@ -20,6 +20,9 @@
 #include "AssignmentSocket.h"
 using namespace std;
 
+extern string MYSQL_SERVER;
+extern string MYSQL_USERNAME;
+extern string MYSQL_PASSWORD;
 extern vector<message_buf> MESSAGES;//任务分配报文池
 extern CRITICAL_SECTION g_CS;//全局关键代码段对象
 DWORD WINAPI assign(LPVOID lpParameter);//任务获取线程

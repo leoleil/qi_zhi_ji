@@ -3,22 +3,21 @@
 DWORD ack(LPVOID lpParameter)
 {
 	//数据库连接关键字
-	const char SERVER[10] = "127.0.0.1";
-	const char USERNAME[10] = "root";
-	const char PASSWORD[10] = "123456";
+	const char * SERVER = MYSQL_SERVER.data();
+	const char * USERNAME = MYSQL_USERNAME.data();
+	const char * PASSWORD = MYSQL_PASSWORD.data();
 	const char DATABASE[20] = "di_mian_zhan";
 	const int PORT = 3306;
 	while (1) {
 		//5秒监测数据库的任务分配表
 		Sleep(5000);
-		cout << "| ACK 发送         | 监测数据库分配表..." << endl;
+		//cout << "| ACK 发送         | 监测数据库分配表..." << endl;
 		MySQLInterface mysql;//申请数据库连接对象
 
 							 //连接数据库
 		if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
 			//从数据中获取分配任务
-			//寻找分发标志为2，数据分发标志为0的任务
-			string selectSql = "select 任务编号,ACK,unix_timestamp(任务开始时间),unix_timestamp(任务结束时间),卫星编号,服务器编号 from 任务分配表 where 分发标志 = 5";
+			string selectSql = "select 任务编号,ACK,unix_timestamp(任务开始时间),unix_timestamp(任务结束时间),卫星编号,服务器编号,任务状态 from 任务分配表 where 任务状态 = 3 or 任务状态 = 5 or 任务状态 = 1;";
 			vector<vector<string>> dataSet;
 			mysql.getDatafromDB(selectSql, dataSet);
 			if (dataSet.size() == 0) {
@@ -75,13 +74,21 @@ DWORD ack(LPVOID lpParameter)
 					//发送失败
 					cout << "| ACK 发送         | 发送失败" << endl;
 				}
+				string ackSql = "";
+				if (dataSet[i][6]._Equal("3")) {
+					ackSql = "update 任务分配表 set 任务状态 = 4 where 任务编号 = " + dataSet[i][0];
+				}
+				else {
+					ackSql = "update 任务分配表 set 任务状态 = 6 where 任务编号 = " + dataSet[i][0];
+				}
+				mysql.writeDataToDB(ackSql);
 				delete sendBuf;
 				//断开TCP
 				socketer.offSendServer();
 				delete groundStationId;
 				delete satelliteId;
 			}
-
+			mysql.closeMySQL();
 
 		}
 		else {

@@ -5,7 +5,9 @@
 #include <sstream>
 #include <string>
 using namespace std;
-
+extern string MYSQL_SERVER;
+extern string MYSQL_USERNAME;
+extern string MYSQL_PASSWORD;
 AssignmentSocket::AssignmentSocket()
 {
 }
@@ -112,10 +114,10 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 		}
 
 
-		//将获取到的数据放入数据池中
-		const char SERVER[10] = "127.0.0.1";//连接的数据库ip
-		const char USERNAME[10] = "root";
-		const char PASSWORD[10] = "123456";
+		//将获取到的数据放入数据库中
+		const char * SERVER = MYSQL_SERVER.data();//连接的数据库ip
+		const char * USERNAME = MYSQL_USERNAME.data();
+		const char * PASSWORD = MYSQL_PASSWORD.data();
 		const char DATABASE[20] = "di_mian_zhan";
 		const int PORT = 3306;
 		MySQLInterface mysql;
@@ -135,23 +137,41 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 				//解析报文写入数据库
 				AllocationMessage message;
 				message.messageParse(val);
-				int size;
-				char satrlliteId[20];
-				message.getterSatelliteId(satrlliteId, size);
-				string sql = "INSERT INTO `di_mian_zhan`.`任务分配表`(`任务编号`,`卫星编号`,`任务类型`,`计划开始时间`,`计划截止时间`,`分发标志`,`任务标志`)VALUES(";
-				sql = sql + to_string(message.getterTaskNum()) + ",'" + satrlliteId + "'," + to_string(message.getterTaskType()) + ",from_unixtime(" + to_string(message.getterTaskStartTime())+"),from_unixtime(" + to_string(message.getterTaskEndTime()) + "),2,0);";
-				mysql.writeDataToDB(sql);
-				if (message.getterTaskType() == 101) {
-					//如果是遥控报文，添加遥控信息
-					int message_date_len = 64 * 1024;
-					char message_date[64 * 1024];
-					message.getterMessage(message_date, message_date_len);
-					sql = "update `di_mian_zhan`.`任务分配表` set `遥控信息` = '";
-					sql = sql + message_date + "' where `任务编号` = " + to_string(message.getterTaskNum()) + ";";
+				//如果是撤销报文
+				if (message.getterMessageId() == 4020) {
+					string sql = "SELECT * FROM di_mian_zhan.任务分配表 where 任务状态 = 0 and 任务编号 = ";
+					sql = sql + to_string(message.getterTaskNum()) + ";";
+					vector<vector<string>> s;
+					mysql.getDatafromDB(sql, s);
+					if (s.size() == 0) {
+						cout << "| 任务分配         | 撤销失败，任务号为" << to_string(message.getterTaskNum()) << endl;
+						continue;
+					}
+					sql = "UPDATE `di_mian_zhan`.`任务分配表`SET`任务状态` = 1,`ACK` = 1200 WHERE `任务编号` = ";
+					sql = sql + to_string(message.getterTaskNum()) + ";";
 					mysql.writeDataToDB(sql);
+					cout << "| 任务分配         | 撤销成功，任务号为" << to_string(message.getterTaskNum()) << endl;
 				}
-				
-				cout << "| 任务分配         | 成功" << endl;
+				else
+				{
+					int size;
+					char satrlliteId[20];
+					message.getterSatelliteId(satrlliteId, size);
+					string sql = "INSERT INTO `di_mian_zhan`.`任务分配表`(`任务获取时间`,`任务编号`,`卫星编号`,`任务类型`,`计划开始时间`,`计划截止时间`,`任务状态`)VALUES(now(),";
+					sql = sql + to_string(message.getterTaskNum()) + ",'" + satrlliteId + "'," + to_string(message.getterTaskType()) + ",from_unixtime(" + to_string(message.getterTaskStartTime()) + "),from_unixtime(" + to_string(message.getterTaskEndTime()) + "),0);";
+					mysql.writeDataToDB(sql);
+					if (message.getterTaskType() == 101) {
+						//如果是遥控报文，添加遥控信息
+						int message_date_len = 64 * 1024;
+						char message_date[64 * 1024];
+						message.getterMessage(message_date, message_date_len);
+						sql = "update `di_mian_zhan`.`任务分配表` set `遥控信息` = '";
+						sql = sql + message_date + "' where `任务编号` = " + to_string(message.getterTaskNum()) + ";";
+						mysql.writeDataToDB(sql);
+					}
+
+					cout << "| 任务分配         | 成功" << endl;
+				}
 				mysql.closeMySQL();
 			}
 		}

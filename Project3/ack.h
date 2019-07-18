@@ -17,6 +17,9 @@
 
 using namespace std;
 
+extern string MYSQL_SERVER;
+extern string MYSQL_USERNAME;
+extern string MYSQL_PASSWORD;
 /*ack模块*/
 //ack分配线程入口
 DWORD WINAPI ack(LPVOID lpParameter);
