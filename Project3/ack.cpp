@@ -78,8 +78,11 @@ DWORD ack(LPVOID lpParameter)
 				if (dataSet[i][6]._Equal("3")) {
 					ackSql = "update 任务分配表 set 任务状态 = 4 where 任务编号 = " + dataSet[i][0];
 				}
-				else {
+				else if (dataSet[i][6]._Equal("5")) {
 					ackSql = "update 任务分配表 set 任务状态 = 6 where 任务编号 = " + dataSet[i][0];
+				}
+				else {
+					ackSql = "update 任务分配表 set 任务状态 = 1 where 任务编号 = " + dataSet[i][0];
 				}
 				mysql.writeDataToDB(ackSql);
 				delete sendBuf;

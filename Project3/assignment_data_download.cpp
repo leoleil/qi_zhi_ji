@@ -113,7 +113,7 @@ DWORD downdata(LPVOID lpParameter)
 					delete satelliteId;
 					continue;
 				}
-				cout << "| 数据下行         | >";
+				cout << "| 数据下行         | ";
 				//读取文件
 				while (!fileIs.eof()) {
 					int bufLen = 1024 * 64;//数据最大64K
@@ -135,6 +135,7 @@ DWORD downdata(LPVOID lpParameter)
 					char* sendBuf = new char[bufSize];//申请发送buf
 					ZeroMemory(sendBuf, bufSize);//清空发送空间
 					downMessage.createMessage(sendBuf, returnSize, bufSize);//创建传输字节包
+					Sleep(10);
 					if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 						//发送失败释放资源跳出文件读写
 						cout << "| 数据下行         | 发送失败，断开连接" << endl;
