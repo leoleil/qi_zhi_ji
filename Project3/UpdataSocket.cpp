@@ -86,7 +86,7 @@ int UpdataSocket::createReceiveServer(const int port, std::vector<message_buf>& 
 			ZeroMemory(buf, BUF_SIZE);
 			
 			//获取数据
-			retVal = recv(sClient, data_ptr, BUF_SIZE, 0);
+			retVal = recv(sClient, buf, BUF_SIZE, 0);
 
 			if (SOCKET_ERROR == retVal)
 			{
@@ -102,7 +102,7 @@ int UpdataSocket::createReceiveServer(const int port, std::vector<message_buf>& 
 				closesocket(sClient);   //关闭套接字
 				return -1;
 			}
-			//memcpy(data_ptr, buf, retVal);
+			memcpy(data_ptr, buf, retVal);
 			r_len = r_len + retVal;
 
 			data_ptr = data_ptr + retVal;
