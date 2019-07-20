@@ -386,8 +386,9 @@ DWORD tele(LPVOID lpParameter)
 									break;
 								}
 								cout << ">";
-								ackSql = "update ";
-								ackSql = ackSql + new_data_set[i][0] + "_" + new_data_set[i][1] + " set 发送标志 = 1 where 主键 = " + satellite_data[ii][0] + ";";
+								//删除数据
+								ackSql = "DELETE FROM ";
+								ackSql = ackSql + new_data_set[i][0] + "_" + new_data_set[i][1] + " where 主键 = " + satellite_data[ii][0] + ";";
 								mysql.writeDataToDB(ackSql);
 							}
 							cout << endl;
