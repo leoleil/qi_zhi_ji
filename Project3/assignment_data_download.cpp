@@ -80,30 +80,59 @@ DWORD downdata(LPVOID lpParameter)
 					delete satelliteId;
 					continue;
 				}
+				MySQLInterface diskMysql;
+				if (!diskMysql.connectMySQL(SERVER, USERNAME, PASSWORD, "disk", PORT)) {
+					
+					cout << "| 数据下行         | 连接数据库失败" << endl;
+					cout << "| 数据下行错误信息 | " << diskMysql.errorNum << endl;
+					break;
+				}
+				vector<vector<string>> disk;
+				diskMysql.getDatafromDB("SELECT * FROM disk.存盘位置;", disk);
+				if (disk.size() == 0) {
+					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据下行','存盘位置未知');");
+					cout << "| 数据下行         | 存盘位置未知，请在数据库设置。" << endl;
+					break;
+				}
+				string path = disk[0][1];
+				path = path + "\\下行传输数据\\" + dataSet[i][0];
+				vector<string> files;//要上传的文件
+				// 文件句柄
+				//long hFile = 0;  //win7
+				intptr_t hFile = 0;   //win10
+				// 文件信息
+				struct _finddata_t fileinfo;
+				string p;
+				if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1) {
+					do {
+						if ((strcmp(fileinfo.name, ".") != 0) && (strcmp(fileinfo.name, "..") != 0)) {
+							// 保存文件的全路径
+							string s = "";
+							files.push_back(s.append(fileinfo.name));
+						}
+						
+ 					} while (_findnext(hFile, &fileinfo) == 0); //寻找下一个，成功返回0，否则-1
 
-				//读取数据上行配置文件
-				//读取配置文件创建接收服务
-				string config = "D:\\卫星星座运管系统\\下行传输数据\\" + dataSet[i][0] + "\\config.txt";
-				ifstream is(config, ios::in);
-				if (!is.is_open()) {
+					_findclose(hFile);
+				}
+				if (files.size() == 0) {
+					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据下行','无下行文件');");
+					cout << "| 数据下行         | ";
+					cout << path << " 无下行文件" << endl;
 					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
 					mysql.writeDataToDB(ackSql);
-					cout << "| 数据下行         | ";
-					cout << config << " 无法打开" << endl;
 					//创建不成功释放资源
 					delete groundStationId;
 					delete satelliteId;
 					continue;
 				}
-				string fileName = "";//文件名
-				string expandName = "";//扩展名
-
-				getline(is, fileName);
-				getline(is, expandName);
-				is.close();
-				string file = "D:\\卫星星座运管系统\\下行传输数据\\" + dataSet[i][0] + "\\" + fileName + expandName;
+				int pos = files[0].find_last_of('.');
+				string fileName(files[0].substr(0,pos));//文件名
+				string expandName(files[0].substr(pos));//扩展名
+				string file = path.append("\\").append(files[0]);
 				ifstream fileIs(file, ios::binary | ios::in);
 				if (!fileIs.is_open()) {
+					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据下行','下行文件无法打开');");
 					cout << "| 数据下行         | ";
 					cout << file << " 无法打开" << endl;
 					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
@@ -138,6 +167,7 @@ DWORD downdata(LPVOID lpParameter)
 					Sleep(10);
 					if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 						//发送失败释放资源跳出文件读写
+						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据下行','发送失败，断开连接');");
 						cout << "| 数据下行         | 发送失败，断开连接" << endl;
 						ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
 						mysql.writeDataToDB(ackSql);
@@ -152,7 +182,7 @@ DWORD downdata(LPVOID lpParameter)
 					if (fileIs.eof() == true) {
 						cout << endl;
 						cout << "| 数据下行         | " << dataSet[i][0] << "号任务下行成功" << endl;
-
+						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据下行','发送成功断开连接');");
 						//修改数据库分发标志
 						ackSql = "update 任务分配表 set 任务状态 = 3 , ACK = 1000,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
 						mysql.writeDataToDB(ackSql);

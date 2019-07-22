@@ -13,6 +13,7 @@
 #include "DownMessage.h"
 #include "StringNumUtils.h"
 #include "Socket.h"
+#include <io.h>
 
 using namespace std;
 

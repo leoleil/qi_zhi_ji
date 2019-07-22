@@ -56,7 +56,21 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 				string ackSql = "";
 				ackSql = "update 任务分配表 set 任务状态 = 2 ,任务开始时间 = now() where 任务编号 = " + taskNumFile;
 				mysql.writeDataToDB(ackSql);
-				string path = "D:\\卫星星座运管系统\\上行传输数据\\" + taskNumFile;
+				MySQLInterface diskMysql;
+				if (!diskMysql.connectMySQL(SERVER, USERNAME, PASSWORD, "disk", PORT)) {
+					cout << "| 数据上行         | 连接数据库失败" << endl;
+					cout << "| 数据上行错误信息 | " << diskMysql.errorNum << endl;
+					break;
+				}
+				vector<vector<string>> disk;
+				diskMysql.getDatafromDB("SELECT * FROM disk.存盘位置;", disk);
+				if (disk.size() == 0) {
+					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','存盘位置未知');");
+					cout << "| 数据上行         | 存盘位置未知，请在数据设置。" << endl;
+					break;
+				}
+				string path = disk[0][1];
+				path = path+ "\\上行传输数据\\" + taskNumFile;
 				string file_path = path + "\\" + fileName + expandName;
 				//string command;
 				//command = "mkdir - p " + path;
@@ -83,6 +97,7 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 					ackSql = "update 任务分配表 set 任务状态 = 3 , ACK = 1000,任务结束时间 = now() where 任务编号 = " + taskNumFile;
 					mysql.writeDataToDB(ackSql);
 					cout << "| 数据上行         | 已缓存文件下载完毕" << endl;
+					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','已缓存文件下载完毕');");
 					break;//跳出循环
 				}
 				else {
@@ -100,9 +115,11 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 					}
 					if (count == 60) {
 						cout << "| 数据上行         | 文件上传数据等待超时" << endl;
+						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','文件上传数据等待超时');");
 						//删除已经下载数据
 						remove(file_path.c_str());
 						cout << "| 数据上行         | 清空文件已缓存文件" << endl;
+						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','清空文件已缓存文件');");
 						long long now = Message::getSystemTime();//获取当前时间
 						ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + taskNumFile;
 						mysql.writeDataToDB(ackSql);
