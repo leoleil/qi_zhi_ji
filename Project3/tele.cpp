@@ -3,9 +3,9 @@
 DWORD tele(LPVOID lpParameter)
 {
 	//数据库连接关键字
-	const char SERVER[10] = "127.0.0.1";
-	const char USERNAME[10] = "root";
-	const char PASSWORD[10] = "";
+	const char * SERVER = MYSQL_SERVER.data();
+	const char * USERNAME = MYSQL_USERNAME.data();
+	const char * PASSWORD = MYSQL_PASSWORD.data();
 	const char DATABASE[20] = "di_mian_zhan";
 	const int PORT = 3306;
 	while (1) {
