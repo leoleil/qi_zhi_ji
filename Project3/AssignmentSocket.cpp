@@ -122,7 +122,7 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 		const int PORT = 3306;
 		MySQLInterface mysql;
 		if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
-			mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'任务分配','创建TCP连接');");
+			//mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件) VALUES (now(),'任务分配','创建TCP连接');");
 			char* ptr = data;
 			UINT32 length = 0;
 			for (int i = 0; i < data_len; i = i + length) {
@@ -146,14 +146,14 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 					mysql.getDatafromDB(sql, s);
 					if (s.size() == 0) {
 						cout << "| 任务分配         | 撤销失败，任务号为" << to_string(message.getterTaskNum()) << endl;
-						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'任务分配','撤销失败，任务号为" + to_string(message.getterTaskNum()) + "');");
+						mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'任务分配','撤销失败，任务号为" + to_string(message.getterTaskNum()) + "',"+ to_string(message.getterTaskNum()) +");");
 						continue;
 					}
 					sql = "UPDATE `di_mian_zhan`.`任务分配表`SET`任务状态` = 1,`ACK` = 1200 WHERE `任务编号` = ";
 					sql = sql + to_string(message.getterTaskNum()) + ";";
 					mysql.writeDataToDB(sql);
 					cout << "| 任务分配         | 撤销成功，任务号为" << to_string(message.getterTaskNum()) << endl;
-					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'任务分配','撤销成功，任务号为" + to_string(message.getterTaskNum()) +"');");
+					mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'任务分配','撤销成功，任务号为" + to_string(message.getterTaskNum()) +"',"+ to_string(message.getterTaskNum()) +");");
 				}
 				else
 				{
@@ -172,7 +172,7 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 						sql = sql + message_date + "' where `任务编号` = " + to_string(message.getterTaskNum()) + ";";
 						mysql.writeDataToDB(sql);
 					}
-					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'任务分配','分配成功，任务号为" + to_string(message.getterTaskNum()) + "');");
+					mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'任务分配','分配成功，任务号为" + to_string(message.getterTaskNum()) + "',"+ to_string(message.getterTaskNum()) +");");
 					cout << "| 任务分配         | 成功" << endl;
 				}
 				mysql.closeMySQL();

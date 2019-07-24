@@ -65,7 +65,7 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 				vector<vector<string>> disk;
 				diskMysql.getDatafromDB("SELECT * FROM disk.存盘位置;", disk);
 				if (disk.size() == 0) {
-					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','存盘位置未知');");
+					mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'数据上行','存盘位置未知'," + taskNumFile + ");");
 					cout << "| 数据上行         | 存盘位置未知，请在数据设置。" << endl;
 					break;
 				}
@@ -97,7 +97,7 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 					ackSql = "update 任务分配表 set 任务状态 = 3 , ACK = 1000,任务结束时间 = now() where 任务编号 = " + taskNumFile;
 					mysql.writeDataToDB(ackSql);
 					cout << "| 数据上行         | 已缓存文件下载完毕" << endl;
-					mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','已缓存文件下载完毕');");
+					mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'数据上行','已缓存文件下载完毕'," + taskNumFile + ");");
 					break;//跳出循环
 				}
 				else {
@@ -115,11 +115,11 @@ DWORD assignment_data_upload(LPVOID lpParameter)
 					}
 					if (count == 60) {
 						cout << "| 数据上行         | 文件上传数据等待超时" << endl;
-						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','文件上传数据等待超时');");
+						mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'数据上行','文件上传数据等待超时'," + taskNumFile + ");");
 						//删除已经下载数据
 						remove(file_path.c_str());
 						cout << "| 数据上行         | 清空文件已缓存文件" << endl;
-						mysql.writeDataToDB("INSERT INTO 日志(时间,模块,事件) VALUES (now(),'数据上行','清空文件已缓存文件');");
+						mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'数据上行','清空文件已缓存文件'," + taskNumFile + ");");
 						long long now = Message::getSystemTime();//获取当前时间
 						ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + taskNumFile;
 						mysql.writeDataToDB(ackSql);
