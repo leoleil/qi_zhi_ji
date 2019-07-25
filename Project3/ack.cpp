@@ -73,7 +73,7 @@ DWORD ack(LPVOID lpParameter)
 				if (socketer.sendMessage(sendBuf, bufSize) == -1) {
 					//发送失败
 					cout << "| ACK 发送         | 发送失败" << endl;
-					mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'ACK 发送','发送失败',"+ dataSet[i][0] +");");
+					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'ACK 发送','发送失败',"+ dataSet[i][0] +");");
 				}
 				string ackSql = "";
 				if (dataSet[i][6]._Equal("3")) {
@@ -86,7 +86,7 @@ DWORD ack(LPVOID lpParameter)
 					ackSql = "update 任务分配表 set 任务状态 = 7 where 任务编号 = " + dataSet[i][0];
 				}
 				cout << "| ACK 发送         | 发送成功" << endl;
-				mysql.writeDataToDB("INSERT INTO 系统日志(时间,模块,事件,任务编号) VALUES (now(),'ACK 发送','发送成功'," + dataSet[i][0] + ");");
+				mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'ACK 发送','发送成功'," + dataSet[i][0] + ");");
 				mysql.writeDataToDB(ackSql);
 				delete sendBuf;
 				//断开TCP

@@ -151,6 +151,7 @@ int AssignSocket::createReceiveServer(const int port, std::vector<message_buf>& 
 				ackSql += "FROM_UNIXTIME(" + utils.numToString<long long>(allocationMessage.getterTaskStartTime()) + "),";
 				ackSql += "FROM_UNIXTIME(" + utils.numToString<long long>(allocationMessage.getterTaskEndTime()) + "));";
 				mysql.writeDataToDB(ackSql);
+				mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'任务分配','接收任务'," + utils.numToString<UINT32>(allocationMessage.getterTaskNum()) + ");");
 			}
 			else {
 				cout << "| 接收任务         | 连接数据库失败" << endl;
