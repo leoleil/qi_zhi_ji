@@ -2,12 +2,11 @@
 
 
 
-AllocationMessage::AllocationMessage(UINT16 messageId, long long dateTime, bool encrypt, UINT32 taskNum, UINT16 taskType, long long taskStartTime, long long taskEndTime, char* satelliteId, char* groundStationId):
-	Message(messageId, dateTime, encrypt), taskNum(taskNum), taskType(taskType), taskStartTime(taskStartTime), taskEndTime(taskEndTime)
+AllocationMessage::AllocationMessage(UINT16 messageId, long long dateTime, bool encrypt, UINT32 taskNum, UINT16 taskType, long long taskStartTime, char* satelliteId):
+	Message(messageId, dateTime, encrypt), taskNum(taskNum), taskType(taskType), taskStartTime(taskStartTime)
 {
 	strcpy_s(this->satelliteId, 20, satelliteId);
-	strcpy_s(this->groundStationId, 20, groundStationId);
-	this->messageLength = this->messageLength + sizeof(UINT32) + sizeof(UINT16) + sizeof(long long) + sizeof(long long) + 40;
+	this->messageLength = this->messageLength + sizeof(UINT32) + sizeof(UINT16) + sizeof(long long) + 20;
 }
 AllocationMessage::AllocationMessage() {
 
@@ -47,16 +46,6 @@ void AllocationMessage::setterTaskStartTime(long long taskStartTime)
 	this->taskStartTime = taskStartTime;
 }
 
-long long AllocationMessage::getterTaskEndTime()
-{
-	return taskEndTime;
-}
-
-void AllocationMessage::setterTaskEndTime(long long taskEndTime)
-{
-	this->taskEndTime = taskEndTime;
-}
-
 void AllocationMessage::getterSatelliteId(char* satelliteId, int & size)
 {
 	strcpy_s(satelliteId, 20, this->satelliteId);
@@ -67,19 +56,6 @@ void AllocationMessage::setterSatelliteId(char* satelliteId, int size)
 {
 	if (size <= 20) {
 		strcpy_s(this->satelliteId, 20, satelliteId);
-	}
-}
-
-void AllocationMessage::getterGroundStationId(char * groundStationId, int & size)
-{
-	strcpy_s(groundStationId, 20, this->groundStationId);
-	size = 20;
-}
-
-void AllocationMessage::setterGroundStationId(char * groundStationId, int size)
-{
-	if (size <= 20) {
-		strcpy_s(this->groundStationId, size, groundStationId);
 	}
 }
 
@@ -125,11 +101,7 @@ void AllocationMessage::createMessage(char * buf, int & message_size, int buf_si
 		bufPtr = bufPtr + sizeof(UINT16);//移动指针
 		memcpy(bufPtr, &taskStartTime, sizeof(long long));//计划开始时间戳
 		bufPtr = bufPtr + sizeof(long long);//移动指针
-		memcpy(bufPtr, &taskEndTime, sizeof(long long));//计划结束时间戳
-		bufPtr = bufPtr + sizeof(long long);//移动指针
-		memcpy(bufPtr, satelliteId, 20);//卫星编号
-		bufPtr = bufPtr + 20;//移动指针
-		memcpy(bufPtr, groundStationId, 20);//地面站编号
+		memcpy(bufPtr, satelliteId, 20);//无人机编号
 		bufPtr = bufPtr + 20;//移动指针
 		memcpy(bufPtr, message, messageSize);//报文内容
 		message_size = messageLength;
@@ -155,11 +127,7 @@ void AllocationMessage::messageParse(char * buf)
 	bufPtr = bufPtr + sizeof(UINT16);//移动指针
 	memcpy(&taskStartTime, bufPtr, sizeof(long long));//计划开始时间戳
 	bufPtr = bufPtr + sizeof(long long);//移动指针
-	memcpy(&taskEndTime, bufPtr, sizeof(long long));//计划结束时间戳
-	bufPtr = bufPtr + sizeof(long long);//移动指针
-	memcpy(satelliteId, bufPtr, 20);//卫星编号
-	bufPtr = bufPtr + 20;//移动指针
-	memcpy(groundStationId, bufPtr, 20);//地面站编号
+	memcpy(satelliteId, bufPtr, 20);//无人机编号
 	bufPtr = bufPtr + 20;//移动指针
 	messageSize = messageLength - (bufPtr - buf);
 	message = new char[messageSize];//为message提供内存

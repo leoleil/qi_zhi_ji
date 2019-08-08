@@ -6,7 +6,7 @@ DWORD downdata(LPVOID lpParameter)
 	const char * SERVER = MYSQL_SERVER.data();
 	const char * USERNAME = MYSQL_USERNAME.data();
 	const char * PASSWORD = MYSQL_PASSWORD.data();
-	const char DATABASE[20] = "di_mian_zhan";
+	const char DATABASE[20] = "qian_zhi_ji";
 	const int PORT = 3306;
 	while (1) {
 		//5秒监测数据库的任务分配表
@@ -18,7 +18,7 @@ DWORD downdata(LPVOID lpParameter)
 		if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
 			//从数据中获取分配任务
 			//寻找分发标志为2，数据分发标志为0的任务
-			string selectSql = "select 任务编号,任务类型,unix_timestamp(计划开始时间),unix_timestamp(计划截止时间),卫星编号,服务器编号 from 任务分配表 where 任务状态 = 0 and 任务类型 = 111";
+			string selectSql = "select 主键,任务编号,无人机编号 from 数据下行更新表";
 			vector<vector<string>> dataSet;
 			mysql.getDatafromDB(selectSql, dataSet);
 			if (dataSet.size() == 0) {
@@ -28,43 +28,22 @@ DWORD downdata(LPVOID lpParameter)
 			for (int i = 0, len = dataSet.size(); i < len; i++) {
 				char* messageDate;
 				int messageDataSize = 0;
-				if (!dataSet[i][1]._Equal("111")) {
-
-					continue;//继续等待
-				}
 				//数据下行任务
 				StringNumUtils util;//字符转数字工具
 
 				long long dateTime = Message::getSystemTime();//获取当前时间戳
 				bool encrypt = false;//是否加密
-				UINT32 taskNum = util.stringToNum<UINT32>(dataSet[i][0]);//任务编号
-				UINT16 taskType = util.stringToNum<UINT16>(dataSet[i][1]);//任务类型
-				long long taskStartTime = util.stringToNum<long long>(dataSet[i][2]);//计划开始时间
-				if (taskStartTime*1000 > dateTime) {
-					//如果还没到计划开始时间就跳过
-					continue;
-				}
+				UINT32 taskNum = util.stringToNum<UINT32>(dataSet[i][1]);//任务编号
 				string ackSql = "";
-				if (i == 0) {
-					//将该任务号的状态改为正在执行，并且记录任务开始时间
-					ackSql = "update 任务分配表 set 任务状态 = 2 ,任务开始时间 = now() where 任务编号 = " + dataSet[i][0];
-					mysql.writeDataToDB(ackSql);
-				}
-				long long taskEndTime = util.stringToNum<long long>(dataSet[i][3]);//计划截止时间
-				char* satelliteId = new char[20];//卫星编号
-				strcpy_s(satelliteId, dataSet[i][4].size() + 1, dataSet[i][4].c_str());
-				char* groundStationId = new char[20];//服务器编号
-				strcpy_s(groundStationId, dataSet[i][5].size() + 1, dataSet[i][5].c_str());
+				char* uavId = new char[20];//无人机编号
+				strcpy_s(uavId, dataSet[i][2].size() + 1, dataSet[i][2].c_str());
 
 				//查找地面站ip地址发送报文
-				string groundStationSql = "select IP地址 from 服务器信息表 where 服务器编号 =" + dataSet[i][5];
+				string groundStationSql = "select IP地址 from 服务器信息表";
 				vector<vector<string>> ipSet;
 				mysql.getDatafromDB(groundStationSql, ipSet);
 				if (ipSet.size() == 0) {
-					delete groundStationId;
-					delete satelliteId;
-					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100 ,任务结束时间 = now() where 任务编号 = " + dataSet[i][0];
-					mysql.writeDataToDB(ackSql);
+					delete uavId;
 					continue;//没有找到ip地址
 				}
 
@@ -73,11 +52,8 @@ DWORD downdata(LPVOID lpParameter)
 				const char* ip = ipSet[0][0].c_str();//获取到地址
 													 //建立TCP连接
 				if (!socketer.createSendServer(ip, 4997, 0)) {
-					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
-					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
-					delete groundStationId;
-					delete satelliteId;
+					delete uavId;
 					continue;
 				}
 				MySQLInterface diskMysql;
@@ -92,15 +68,12 @@ DWORD downdata(LPVOID lpParameter)
 				if (disk.size() == 0) {
 					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','存盘位置未知',"+ dataSet[i][0] +");");
 					cout << "| 数据下行         | 存盘位置未知，请在数据库设置。" << endl;
-					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
 					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
-					delete groundStationId;
-					delete satelliteId;
 					continue;
 				}
 				string path = disk[0][1];
-				path = path + "\\下行传输数据\\" + dataSet[i][0];
+				path = path + "\\下行传输数据\\" + dataSet[i][1];
 				vector<string> files;//要上传的文件
 				// 文件句柄
 				//long hFile = 0;  //win7
@@ -124,11 +97,8 @@ DWORD downdata(LPVOID lpParameter)
 					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','无下行文件'," + dataSet[i][0] + ");");
 					cout << "| 数据下行         | ";
 					cout << path << " 无下行文件" << endl;
-					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
-					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
-					delete groundStationId;
-					delete satelliteId;
+					delete uavId;
 					continue;
 				}
 				int pos = files[0].find_last_of('.');
@@ -140,11 +110,8 @@ DWORD downdata(LPVOID lpParameter)
 					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','下行文件无法打开'," + dataSet[i][0] + ");");
 					cout << "| 数据下行         | ";
 					cout << file << " 无法打开" << endl;
-					ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
-					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
-					delete groundStationId;
-					delete satelliteId;
+					delete uavId;
 					continue;
 				}
 				cout << "| 数据下行         | ";
@@ -174,8 +141,6 @@ DWORD downdata(LPVOID lpParameter)
 						//发送失败释放资源跳出文件读写
 						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','发送失败，断开连接'," + dataSet[i][0] + ");");
 						cout << "| 数据下行         | 发送失败，断开连接" << endl;
-						ackSql = "update 任务分配表 set 任务状态 = 5 , ACK = 1100,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
-						mysql.writeDataToDB(ackSql);
 						delete sendBuf;
 						delete up_expand_name;
 						delete up_file_name;
@@ -189,9 +154,9 @@ DWORD downdata(LPVOID lpParameter)
 						cout << "| 数据下行         | " << dataSet[i][0] << "号任务下行成功" << endl;
 						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','发送成功断开连接'," + dataSet[i][0] + ");");
 						//修改数据库分发标志
-						ackSql = "update 任务分配表 set 任务状态 = 3 , ACK = 1000,任务结束时间 = now()  where 任务编号 = " + dataSet[i][0];
+						ackSql = "delete from 数据下行更新表 where 主键 = " + dataSet[i][0];
 						mysql.writeDataToDB(ackSql);
-
+						
 					}
 
 					delete sendBuf;
@@ -203,8 +168,7 @@ DWORD downdata(LPVOID lpParameter)
 				//断开TCP
 				socketer.offSendServer();
 				fileIs.close();
-				delete groundStationId;
-				delete satelliteId;
+				delete uavId;
 			}
 			mysql.closeMySQL();
 

@@ -48,9 +48,6 @@
     <ClCompile Include="AssignmentSocket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="AssignSocket.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="DownloadSocket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -70,6 +67,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DefinitionMessage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="StateMessage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="state.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -126,6 +129,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DefinitionMessage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="StateMessage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="state.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -138,7 +138,6 @@
     <ClCompile Include="AssignmentSocket.cpp" />
     <ClCompile Include="assignment_data_download.cpp" />
     <ClCompile Include="assignment_data_upload.cpp" />
-    <ClCompile Include="AssignSocket.cpp" />
     <ClCompile Include="DefinitionMessage.cpp" />
     <ClCompile Include="DownloadSocket.cpp" />
     <ClCompile Include="DownMessage.cpp" />
@@ -146,6 +145,8 @@
     <ClCompile Include="Message.cpp" />
     <ClCompile Include="MySQLInterface.cpp" />
     <ClCompile Include="Socket.cpp" />
+    <ClCompile Include="state.cpp" />
+    <ClCompile Include="StateMessage.cpp" />
     <ClCompile Include="StringNumUtils.cpp" />
     <ClCompile Include="tele.cpp" />
     <ClCompile Include="UpdataSocket.cpp" />
@@ -166,6 +167,8 @@
     <ClInclude Include="Message.h" />
     <ClInclude Include="MySQLInterface.h" />
     <ClInclude Include="Socket.h" />
+    <ClInclude Include="state.h" />
+    <ClInclude Include="StateMessage.h" />
     <ClInclude Include="StringNumUtils.h" />
     <ClInclude Include="tele.h" />
     <ClInclude Include="UpdataSocket.h" />
