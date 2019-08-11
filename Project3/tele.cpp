@@ -6,7 +6,7 @@ DWORD tele(LPVOID lpParameter)
 	const char * SERVER = MYSQL_SERVER.data();
 	const char * USERNAME = MYSQL_USERNAME.data();
 	const char * PASSWORD = MYSQL_PASSWORD.data();
-	const char DATABASE[20] = "di_mian_zhan";
+	const char DATABASE[20] = "qian_zhi_ji";
 	const int PORT = 3306;
 	while (1) {
 		//5秒监测数据库的任务分配表
@@ -28,7 +28,7 @@ DWORD tele(LPVOID lpParameter)
 				//strcpy_s(groundStationId, dataSet[i][5].size() + 1, dataSet[i][5].c_str());
 
 				//查找地面站ip地址发送报文
-				string groundStationSql = "select IP地址 from 服务器信息表 where 服务器编号 =1";
+				string groundStationSql = "select IP地址 from 服务器信息表";
 				vector<vector<string>> ipSet;
 				mysql.getDatafromDB(groundStationSql, ipSet);
 				if (ipSet.size() == 0) {
@@ -44,12 +44,12 @@ DWORD tele(LPVOID lpParameter)
 				}
 
 				//开始读取配置表
-				string selectSql = "SELECT 设备名, 父设备名 FROM 设备关系表;";
+				string selectSql = "SELECT 设备名, 父设备名, 无人机编号 FROM 设备关系表;";
 				//从数据库中读取设备关系表和字段定义表
 				vector<vector<string>> str_ralation_Array;//输入设备关系集合
 				mysql.getDatafromDB(selectSql, str_ralation_Array);
 				vector<vector<string>> str_definition_Array;//输入字段定义集合
-				selectSql = "SELECT ID,字段名,数据类型,最大值,最小值,单位,显示标志,设备名 FROM di_mian_zhan.字段定义表;";
+				selectSql = "SELECT ID,字段名,数据类型,最大值,最小值,单位,显示标志,设备名,无人机编号 FROM 字段定义表;";
 				mysql.getDatafromDB(selectSql, str_definition_Array);
 
 				StringNumUtils utiles;
@@ -57,8 +57,9 @@ DWORD tele(LPVOID lpParameter)
 					definitionMes mes;
 					mes.name = str_ralation_Array[i][0];
 					mes.p_name = str_ralation_Array[i][1];
+					mes.id = str_ralation_Array[i][2];
 					for (int j = 0; j < str_definition_Array.size(); j++) {
-						if (str_definition_Array[j][7] == str_ralation_Array[i][0]) {
+						if (str_definition_Array[j][7] == str_ralation_Array[i][0] && str_definition_Array[j][8] == str_ralation_Array[i][2]) {
 							field myfield;
 							myfield.f_name = str_definition_Array[j][1];
 							myfield.type = utiles.stringToNum<INT16>(str_definition_Array[j][2]);
@@ -143,7 +144,7 @@ DWORD tele(LPVOID lpParameter)
 						memcpy(sendBuf, message, message_len);
 						if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 
-																		   //发送失败释放资源跳出文件读写
+							//发送失败释放资源跳出文件读写
 							cout << "| 无人机遥测         | 定义报文发送失败" << endl;
 							break;
 						}
@@ -153,7 +154,7 @@ DWORD tele(LPVOID lpParameter)
 					cout << endl;
 					//定义报文发送完毕
 					//删除卫星更新信息
-					selectSql = "DELETE FROM `无人机更新表` WHERE (`卫星编号` = '";
+					selectSql = "DELETE FROM `无人机更新表` WHERE (`无人机编号` = '";
 					selectSql = selectSql + satellite_id[s][0] + "');";
 					mysql.writeDataToDB(selectSql);
 				}
@@ -200,9 +201,9 @@ DWORD tele(LPVOID lpParameter)
 								len = len + 40;
 								memcpy(bufPtr, new_data_set[i][0].data(), 20);//无人机编号
 								bufPtr = bufPtr + 20;
-								long long tm = Message::getSystemTime();//采样时间
-								memcpy(bufPtr, &tm, sizeof(long long));
-								bufPtr = bufPtr + sizeof(long long);
+								//long long tm = Message::getSystemTime();//采样时间
+								//memcpy(bufPtr, &tm, sizeof(long long));
+								//bufPtr = bufPtr + sizeof(long long);
 								//通过设备名去定位该设备的字段信息
 								for (int j = 0; j < D_MES_LIST.size(); j++) {
 									if (D_MES_LIST[j].name == new_data_set[i][1]) {//如果找到了该数据的定义报文
@@ -341,7 +342,7 @@ DWORD tele(LPVOID lpParameter)
 								mysql.writeDataToDB(ackSql);
 							}
 							cout << endl;
-							string ackSql = "DELETE FROM di_mian_zhan.遥测数据更新表 where 无人机编号 = '" + new_data_set[i][0] + "' and 设备名 = '" + new_data_set[i][1] + "';";
+							string ackSql = "DELETE FROM 遥测数据更新表 where 无人机编号 = '" + new_data_set[i][0] + "' and 设备名 = '" + new_data_set[i][1] + "';";
 							mysql.writeDataToDB(ackSql);
 						}
 					}

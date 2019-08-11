@@ -17,7 +17,7 @@ DWORD ack(LPVOID lpParameter)
 							 //连接数据库
 		if (mysql.connectMySQL(SERVER, USERNAME, PASSWORD, DATABASE, PORT)) {
 			//从数据中获取分配任务
-			string selectSql = "select 任务编号,ACK,unix_timestamp(上注时间),任务状态 from 任务信息表 where 任务状态 = 2 || 任务状态 = 4 || 任务状态 = 6";
+			string selectSql = "select 任务编号,unix_timestamp(上注时间),任务状态 from 任务信息表 where 任务状态 = 2 || 任务状态 = 4 || 任务状态 = 6";
 			vector<vector<string>> dataSet;
 			mysql.getDatafromDB(selectSql, dataSet);
 			if (dataSet.size() == 0) {
@@ -36,8 +36,17 @@ DWORD ack(LPVOID lpParameter)
 				long long dateTime = Message::getSystemTime();//获取当前时间戳
 				bool encrypt = false;//是否加密
 				UINT32 taskNum = util.stringToNum<UINT32>(dataSet[i][0]);//任务编号
-				UINT ACK = util.stringToNum<UINT>(dataSet[i][1]);//ACK
-				long long taskStartTime = util.stringToNum<long long>(dataSet[i][2]);//任务开始时间
+				UINT ACK = 1300;//ACK
+				if (dataSet[i][2]._Equal("2")) {
+					ACK = 1300;//ACK
+				}
+				else if (dataSet[i][2]._Equal("4")) {
+					ACK = 1400;//ACK
+				}
+				else {
+					ACK = 1500;//ACK
+				}
+				long long taskStartTime = util.stringToNum<long long>(dataSet[i][1]);//上注时间
 
 				//查找地面站ip地址发送报文
 				string groundStationSql = "select IP地址 from 服务器信息表;";
@@ -67,10 +76,10 @@ DWORD ack(LPVOID lpParameter)
 					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'ACK 发送','发送失败',"+ dataSet[i][0] +");");
 				}
 				string ackSql = "";
-				if (dataSet[i][3]._Equal("2")) {
+				if (dataSet[i][2]._Equal("2")) {
 					ackSql = "update 任务信息表 set 任务状态 = 3 where 任务编号 = " + dataSet[i][0];
 				}
-				else if (dataSet[i][3]._Equal("4")) {
+				else if (dataSet[i][2]._Equal("4")) {
 					ackSql = "update 任务信息表 set 任务状态 = 5 where 任务编号 = " + dataSet[i][0];
 				}
 				else {

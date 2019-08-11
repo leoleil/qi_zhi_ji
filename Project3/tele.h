@@ -38,6 +38,7 @@ typedef struct field {
 }field;
 //定义报文
 typedef struct definitionMes {
+	string id;//无人机编号
 	string name;
 	string p_name;
 	vector<field> f_list;

@@ -73,7 +73,7 @@ DWORD downdata(LPVOID lpParameter)
 					continue;
 				}
 				string path = disk[0][1];
-				path = path + "\\下行传输数据\\" + dataSet[i][1];
+				path = path + "\\下行传输数据\\" + dataSet[i][2];
 				vector<string> files;//要上传的文件
 				// 文件句柄
 				//long hFile = 0;  //win7
