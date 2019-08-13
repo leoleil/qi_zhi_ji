@@ -11,7 +11,7 @@ DWORD tele(LPVOID lpParameter)
 	while (1) {
 		//5秒监测数据库的任务分配表
 		Sleep(5000);
-		//cout << "| 无人机遥测         | 监测数据库分配表..." << endl;
+		//cout << "| 无人机遥测       | 监测数据库分配表..." << endl;
 		MySQLInterface mysql;//申请数据库连接对象
 
 							 //连接数据库
@@ -78,7 +78,7 @@ DWORD tele(LPVOID lpParameter)
 				mysql.getDatafromDB(selectSql, satellite_id);
 				for (int s = 0; s < satellite_id.size();s++) {
 					//发送定义报文
-					cout << "| 无人机遥测         | 发送定义报文>";
+					cout << "| 无人机遥测       | 发送定义报文>";
 					for (int i = 0; i < D_MES_LIST.size(); i++) {
 						//报文长度
 						UINT32 message_len = 0;
@@ -145,7 +145,7 @@ DWORD tele(LPVOID lpParameter)
 						if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 
 							//发送失败释放资源跳出文件读写
-							cout << "| 无人机遥测         | 定义报文发送失败" << endl;
+							cout << "| 无人机遥测       | 定义报文发送失败" << endl;
 							break;
 						}
 						cout << ">";
@@ -172,7 +172,7 @@ DWORD tele(LPVOID lpParameter)
 							vector<vector<string>> satellite_data;//数据
 							mysql.getDatafromDB(selectSql, satellite_data);
 							//发送数据报文
-							cout << "| 无人机遥测         | 发送数据报文>";
+							cout << "| 无人机遥测       | 发送数据报文";
 							for (int ii = 0; ii < satellite_data.size(); ii++) {
 								vector<string> lineArray = satellite_data[ii];
 								BYTE buf[M];//数据buf
@@ -330,7 +330,7 @@ DWORD tele(LPVOID lpParameter)
 								memcpy(sendBuf, buf, len);
 								if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 																				   //发送失败释放资源跳出文件读写
-									cout << "| 无人机遥测         | 数据报文发送失败" << endl;
+									cout << "| 无人机遥测       | 数据报文发送失败" << endl;
 									delete sendBuf;
 
 									break;
@@ -363,10 +363,10 @@ DWORD tele(LPVOID lpParameter)
 
 		}
 		else {
-			cout << "| 无人机遥测         | 连接数据库失败" << endl;
+			cout << "| 无人机遥测       | 连接数据库失败" << endl;
 			cout << "| 无人机遥测错误信息 | " << mysql.errorNum << endl;
 		}
-		cout << "| 无人机遥测         | 任务结束" << endl;
+		cout << "| 无人机遥测       | 任务结束" << endl;
 
 	}
 	return 0;

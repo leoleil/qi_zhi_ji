@@ -66,7 +66,7 @@ DWORD downdata(LPVOID lpParameter)
 				vector<vector<string>> disk;
 				diskMysql.getDatafromDB("SELECT * FROM disk.存盘位置;", disk);
 				if (disk.size() == 0) {
-					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','存盘位置未知',"+ dataSet[i][0] +");");
+					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','存盘位置未知');");
 					cout << "| 数据下行         | 存盘位置未知，请在数据库设置。" << endl;
 					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
@@ -94,7 +94,7 @@ DWORD downdata(LPVOID lpParameter)
 					_findclose(hFile);
 				}
 				if (files.size() == 0) {
-					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','无下行文件'," + dataSet[i][0] + ");");
+					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','无下行文件');");
 					cout << "| 数据下行         | ";
 					cout << path << " 无下行文件" << endl;
 					//创建不成功释放资源
@@ -107,7 +107,7 @@ DWORD downdata(LPVOID lpParameter)
 				string file = path.append("\\").append(files[0]);
 				ifstream fileIs(file, ios::binary | ios::in);
 				if (!fileIs.is_open()) {
-					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','下行文件无法打开'," + dataSet[i][0] + ");");
+					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','下行文件无法打开');");
 					cout << "| 数据下行         | ";
 					cout << file << " 无法打开" << endl;
 					//创建不成功释放资源
@@ -139,24 +139,28 @@ DWORD downdata(LPVOID lpParameter)
 					Sleep(10);
 					if (socketer.sendMessage(sendBuf, bufSize) == -1) {//发送包固定65k
 						//发送失败释放资源跳出文件读写
-						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','发送失败，断开连接'," + dataSet[i][0] + ");");
+						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','发送失败，断开连接');");
 						cout << "| 数据下行         | 发送失败，断开连接" << endl;
 						delete sendBuf;
 						delete up_expand_name;
 						delete up_file_name;
 						delete fileDataBuf;
+						fileIs.close();
 						break;
 					}
-					//flieOs.write(fileDataBuf, bufLen);
 					cout << ">";
 					if (fileIs.eof() == true) {
 						cout << endl;
 						cout << "| 数据下行         | " << dataSet[i][0] << "号任务下行成功" << endl;
-						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'数据下行','发送成功断开连接'," + dataSet[i][0] + ");");
+						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','发送成功断开连接');");
 						//修改数据库分发标志
 						ackSql = "delete from 数据下行更新表 where 主键 = " + dataSet[i][0];
 						mysql.writeDataToDB(ackSql);
-						
+						fileIs.close();
+						remove(file.c_str());
+					}
+					else {
+						fileIs.close();
 					}
 
 					delete sendBuf;
@@ -167,7 +171,7 @@ DWORD downdata(LPVOID lpParameter)
 				}
 				//断开TCP
 				socketer.offSendServer();
-				fileIs.close();
+				
 				delete uavId;
 			}
 			mysql.closeMySQL();

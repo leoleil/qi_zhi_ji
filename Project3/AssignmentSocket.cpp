@@ -148,7 +148,7 @@ int AssignmentSocket::createReceiveServer(const int port, std::vector<message_bu
 						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件,任务编号) VALUES (now(),'任务分配','撤销失败，任务号为" + to_string(message.getterTaskNum()) + "'," + to_string(message.getterTaskNum()) + ");");
 						continue;
 					}
-					sql = "UPDATE `任务信息表` SET `任务状态` = 6,`ACK` = 1500 WHERE `任务编号` = ";
+					sql = "UPDATE `任务信息表` SET `任务状态` = 6 WHERE `任务编号` = ";
 					sql = sql + to_string(message.getterTaskNum()) + ";";
 					mysql.writeDataToDB(sql);
 					cout << "| 任务分配         | 撤销成功，任务号为" << to_string(message.getterTaskNum()) << endl;
