@@ -22,11 +22,7 @@ DWORD tele(LPVOID lpParameter)
 				vector<definitionMes> D_MES_LIST;//每一个设备定义数据报文定义集合
 				long long dateTime = Message::getSystemTime();//获取当前时间戳
 				bool encrypt = false;//是否加密
-				//char* satelliteId = new char[20];//卫星编号
-				//strcpy_s(satelliteId, dataSet[i][4].size() + 1, dataSet[i][4].c_str());
-				//char* groundStationId = new char[20];//服务器编号
-				//strcpy_s(groundStationId, dataSet[i][5].size() + 1, dataSet[i][5].c_str());
-
+				
 				//查找地面站ip地址发送报文
 				string groundStationSql = "select IP地址 from 服务器信息表";
 				vector<vector<string>> ipSet;
@@ -35,13 +31,7 @@ DWORD tele(LPVOID lpParameter)
 					continue;//没有找到ip地址
 				}
 
-				//创建发送者，与服务器创建连接
-				Socket socketer;
-				const char* ip = ipSet[0][0].c_str();//获取到地址
-													 //建立TCP连接
-				if (!socketer.createSendServer(ip, 4996, 0)) {
-					continue;
-				}
+				
 
 				//开始读取配置表
 				string selectSql = "SELECT 设备名, 父设备名, 无人机编号 FROM 设备关系表;";
@@ -77,6 +67,13 @@ DWORD tele(LPVOID lpParameter)
 				vector<vector<string>> satellite_id;
 				mysql.getDatafromDB(selectSql, satellite_id);
 				for (int s = 0; s < satellite_id.size();s++) {
+					//创建发送者，与服务器创建连接
+					Socket socketer;
+					const char* ip = ipSet[0][0].c_str();//获取到地址
+														 //建立TCP连接
+					if (!socketer.createSendServer(ip, 4996, 0)) {
+						continue;
+					}
 					//发送定义报文
 					cout << "| 无人机遥测       | 发送定义报文";
 					for (int i = 0; i < D_MES_LIST.size(); i++) {
@@ -157,15 +154,25 @@ DWORD tele(LPVOID lpParameter)
 					selectSql = "DELETE FROM `无人机更新表` WHERE (`无人机编号` = '";
 					selectSql = selectSql + satellite_id[s][0] + "');";
 					mysql.writeDataToDB(selectSql);
+					//断开TCP
+					socketer.offSendServer();
 				}
 				//检查是否有数据下来
 				while (true)
 				{
+					
 					//有数据下来则发送数据报文
 					selectSql = "SELECT 无人机编号,设备名 FROM 遥测数据更新表;";
 					vector<vector<string>> new_data_set;
 					mysql.getDatafromDB(selectSql, new_data_set);
 					if (new_data_set.size() != 0) {
+						//创建发送者，与服务器创建连接
+						Socket socketer;
+						const char* ip = ipSet[0][0].c_str();//获取到地址
+															 //建立TCP连接
+						if (!socketer.createSendServer(ip, 4996, 0)) {
+							continue;
+						}
 						for (int i = 0; i < new_data_set.size(); i++) {
 							selectSql = "SELECT * FROM ";
 							selectSql = selectSql + new_data_set[i][0] + "_" + new_data_set[i][1] + " where 发送标志 = 0;";
@@ -345,6 +352,8 @@ DWORD tele(LPVOID lpParameter)
 							string ackSql = "DELETE FROM 遥测数据更新表 where 无人机编号 = '" + new_data_set[i][0] + "' and 设备名 = '" + new_data_set[i][1] + "';";
 							mysql.writeDataToDB(ackSql);
 						}
+						//断开TCP
+						socketer.offSendServer();
 					}
 					else {
 						break;
@@ -356,8 +365,7 @@ DWORD tele(LPVOID lpParameter)
 				
 				mysql.closeMySQL();
 
-				//断开TCP
-				socketer.offSendServer();
+				
 				
 			
 

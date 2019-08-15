@@ -151,7 +151,7 @@ DWORD downdata(LPVOID lpParameter)
 					cout << ">";
 					if (fileIs.eof() == true) {
 						cout << endl;
-						cout << "| 数据下行         | " << dataSet[i][0] << "号任务下行成功" << endl;
+						cout << "| 数据下行         | " << dataSet[i][1] << "号任务下行成功" << endl;
 						mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','发送成功断开连接');");
 						//修改数据库分发标志
 						ackSql = "delete from 数据下行更新表 where 主键 = " + dataSet[i][0];
@@ -171,8 +171,8 @@ DWORD downdata(LPVOID lpParameter)
 				}
 				//断开TCP
 				socketer.offSendServer();
-				
 				delete uavId;
+				Sleep(3000);
 			}
 			mysql.closeMySQL();
 
