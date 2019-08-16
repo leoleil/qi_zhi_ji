@@ -44,7 +44,7 @@ DWORD downdata(LPVOID lpParameter)
 				mysql.getDatafromDB(groundStationSql, ipSet);
 				if (ipSet.size() == 0) {
 					delete uavId;
-					continue;//没有找到ip地址
+					break;//没有找到ip地址
 				}
 
 				//创建发送者
@@ -54,7 +54,7 @@ DWORD downdata(LPVOID lpParameter)
 				if (!socketer.createSendServer(ip, 4997, 0)) {
 					//创建不成功释放资源
 					delete uavId;
-					continue;
+					break;
 				}
 				MySQLInterface diskMysql;
 				if (!diskMysql.connectMySQL(SERVER, USERNAME, PASSWORD, "disk", PORT)) {
@@ -70,7 +70,7 @@ DWORD downdata(LPVOID lpParameter)
 					cout << "| 数据下行         | 存盘位置未知，请在数据库设置。" << endl;
 					mysql.writeDataToDB(ackSql);
 					//创建不成功释放资源
-					continue;
+					break;;
 				}
 				string path = disk[0][1];
 				path = path + "\\下行传输数据\\" + dataSet[i][2];
@@ -99,7 +99,7 @@ DWORD downdata(LPVOID lpParameter)
 					cout << path << " 无下行文件" << endl;
 					//创建不成功释放资源
 					delete uavId;
-					continue;
+					break;;
 				}
 				int pos = files[0].find_last_of('.');
 				string fileName(files[0].substr(0,pos));//文件名
@@ -112,7 +112,7 @@ DWORD downdata(LPVOID lpParameter)
 					cout << file << " 无法打开" << endl;
 					//创建不成功释放资源
 					delete uavId;
-					continue;
+					break;;
 				}
 				cout << "| 数据下行         | ";
 				//读取文件
