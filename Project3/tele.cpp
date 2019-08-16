@@ -372,7 +372,7 @@ DWORD tele(LPVOID lpParameter)
 		}
 		else {
 			cout << "| 无人机遥测       | 连接数据库失败" << endl;
-			cout << "| 无人机遥测错误信息 | " << mysql.errorNum << endl;
+			cout << "| 无人机错误信息   | " << mysql.errorNum << endl;
 		}
 		cout << "| 无人机遥测       | 检测结束" << endl;
 

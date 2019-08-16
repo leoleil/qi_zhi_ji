@@ -47,15 +47,7 @@ DWORD downdata(LPVOID lpParameter)
 					break;//没有找到ip地址
 				}
 
-				//创建发送者
-				Socket socketer;
-				const char* ip = ipSet[0][0].c_str();//获取到地址
-													 //建立TCP连接
-				if (!socketer.createSendServer(ip, 4997, 0)) {
-					//创建不成功释放资源
-					delete uavId;
-					break;
-				}
+				
 				MySQLInterface diskMysql;
 				if (!diskMysql.connectMySQL(SERVER, USERNAME, PASSWORD, "disk", PORT)) {
 					
@@ -69,6 +61,7 @@ DWORD downdata(LPVOID lpParameter)
 					mysql.writeDataToDB("INSERT INTO 系统日志表(时间,模块,事件) VALUES (now(),'数据下行','存盘位置未知');");
 					cout << "| 数据下行         | 存盘位置未知，请在数据库设置。" << endl;
 					mysql.writeDataToDB(ackSql);
+					
 					//创建不成功释放资源
 					break;;
 				}
@@ -114,6 +107,17 @@ DWORD downdata(LPVOID lpParameter)
 					delete uavId;
 					break;;
 				}
+
+				//创建发送者
+				Socket socketer;
+				const char* ip = ipSet[0][0].c_str();//获取到地址
+													 //建立TCP连接
+				if (!socketer.createSendServer(ip, 4997, 0)) {
+					//创建不成功释放资源
+					delete uavId;
+					break;
+				}
+
 				cout << "| 数据下行         | ";
 				//读取文件
 				while (!fileIs.eof()) {
