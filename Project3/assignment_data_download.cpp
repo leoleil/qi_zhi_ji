@@ -159,9 +159,7 @@ DWORD downdata(LPVOID lpParameter)
 						fileIs.close();
 						remove(file.c_str());
 					}
-					else {
-						fileIs.close();
-					}
+					
 
 					delete sendBuf;
 					delete up_expand_name;
@@ -169,6 +167,7 @@ DWORD downdata(LPVOID lpParameter)
 					delete fileDataBuf;
 
 				}
+				fileIs.close();
 				//¶Ï¿ªTCP
 				socketer.offSendServer();
 				delete uavId;
